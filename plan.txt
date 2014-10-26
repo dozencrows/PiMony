@@ -1,0 +1,80 @@
+Phase 1 - first working buttons
+===============================
+- Create demo set of touch buttons to control TV:
+	Power, Volume up/down, Channel up/down, Guide, Back, Input
+- Associate each with an LIRC string
+	e.g. Power: 	RM-ED050-12 KEY_POWER Phillips-HTS KEY_POWER
+	     Volume:	Phillips-HTS KEY_VOLUMEUP
+	     			Phillips-HTS KEY_VOLUMEDOWN
+- When a button is pressed, spawn command with string
+	e.g. "irsend SEND_ONCE %s" % button_lirc_string
+	- encapsulate irsend it in its own class/module to replace later
+	
+Phase 2 - GPIO buttons
+======================
+Ideas:
+* Use RPIO in Python to set up interrupts/polling on buttons
+	- modify startup to ensure Python RPIO module can be used without sudo
+	- create GPIO button class to associate GPIO pin and LIRC string
+	- on press 'edge' spawn irsend as above
+* Use PikeyD
+	- Set up PikeyD to generate key presses from GPIO pin buttons
+	- Add Keyboard button class to associate keypress and LIRC string
+	- on keypress, spawn irsend as above
+	
+Phase 3 - Switch matrix
+=======================
+Ideas:
+* Use SMBus in Python to poll I2C
+	- modify startup to ensure Python SMBus module can be used without sudo
+	- create SwitchMatrix button class to associate matrix code and LIRC string
+	- poll I2C to read matrix; on press 'edge' decode to LIRC string and spawn irsend as above
+* Use PikeyD
+	- Modify PikeyD to poll, read and decode matrix via I2C, and generate keypress
+	- Add Keyboard button class to associate keypress and LIRC string
+	- on keypress, spawn irsend as above
+
+Phase 4 - Direct LIRC connection
+================================
+Replace spawn of irsend with direct LIRC communication via directly opening & using
+socket in PyMony code.
+
+Phase 5 - Devices
+=================
+* Device has:
+	- Name
+	- State variables: power (on/off), input (1,2,3...), audio mode (1,2,3...)
+	- Current state vector: power, input, audio mode
+	- Button layout: map touch screen, gpio, keys to remote codes, and optionally to state variables
+* Provide device handling
+	- Device initialisation: read definitions, create instances & default state variables
+	- Device selection
+	- Device layout rendering
+	- Device layout processing (read input, generate remote codes and state changes)
+	
+Phase 6 - Activities
+====================
+* Activity has:
+	- Name
+	- Expected state for each available device
+* Activity processing
+	- Initialisation: read definitions, create instances
+	- Activity selection and switching
+		- Process expected device state against known state; issue IR commands to achieve expected state
+
+Phase 7 - Advanced UI
+=====================
+* Richer styles:
+	- Varied colours
+	- Varied fonts: faces, styles, colours
+	- Bitmaps
+* More flexible layouts:
+	- Variable size grids
+	- Crosses and stars
+	- Circular
+
+Phase 8 - C/C++ Implementation
+==============================
+
+Phase 9 - Microcontroller Implementation
+========================================

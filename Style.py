@@ -1,0 +1,6 @@
+BACKGROUND_COLOUR   = "background-colour"
+BORDER_COLOUR       = "border-colour"
+BORDER_WIDTH        = "border-width"
+FONT                = "font"
+TEXT_COLOUR         = "text-colour"
+HIGHLIGHT_COLOUR    = "highlight-colour"
