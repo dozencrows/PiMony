@@ -19,7 +19,6 @@ def deinit():
     print "IR deinitialised"
 
 def send_ir(message):
-    print "IR send..."
     lircd_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     lircd_socket.connect(LIRCD_ADDRESS) 
     lircd_socket.sendall(message + "\n")
