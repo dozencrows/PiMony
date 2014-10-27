@@ -10,6 +10,12 @@ Phase 1 - first working buttons
 	e.g. "irsend SEND_ONCE %s" % button_lirc_string
 	- encapsulate irsend it in its own class/module to replace later
 	
+Results
+- Done, but irsend spawn is too slow:
+	- multiple commands need separate spawns, which causes errors
+	- Touchscreen flickers and touches bounce, causing lots of repeats
+	- Jumped ahead to Phase 4 to try and resolve this...
+	
 Phase 2 - GPIO buttons
 ======================
 Ideas:
@@ -38,6 +44,10 @@ Phase 4 - Direct LIRC connection
 ================================
 Replace spawn of irsend with direct LIRC communication via directly opening & using
 socket in PyMony code.
+
+Results:
+- This worked, but didn't alleviate the bouncing/repeating issue
+- Not sending IR keeps the UI nice and stable, without bouncing
 
 Phase 5 - Devices
 =================
