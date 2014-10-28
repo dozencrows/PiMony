@@ -1,0 +1,10 @@
+Useful IR links
+===============
+LIRC config file format: http://winlirc.sourceforge.net/technicaldetails.html
+Phillips RC6 protocol:   http://www.pcbheaven.com/userpages/The_Philips_RC6_Protocol/
+		         http://www.pcbheaven.com/userpages/The_Philips_RC6_Protocol/?topic=worklog&p=1
+Manchester encoding:	 http://www.pcbheaven.com/wikipages/manchester_coding/
+Arduino IR:		 http://www.righto.com/2009/08/multi-protocol-infrared-remote-library.html
+General IR remote:	 http://www.sbprojects.com/knowledge/ir/index.php
+
+
