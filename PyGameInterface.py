@@ -11,6 +11,7 @@ import time
 import imp
 import sys, signal
 import IR
+import RPIO
 
 from TouchScreenButton import TouchScreenButton
 import Style
@@ -41,6 +42,12 @@ test_button_layout = [
     dotdict({ 'x':0, 'y':2, 'width':1, 'height':1, 'text':"Vol -", 'code':"Phillips-HTS KEY_VOLUMEDOWN" }),
     dotdict({ 'x':1, 'y':1, 'width':1, 'height':1, 'text':"Chan +", 'code':"RM-ED050-12 KEY_CHANNELUP" }),
     dotdict({ 'x':1, 'y':2, 'width':1, 'height':1, 'text':"Chan -", 'code':"RM-ED050-12 KEY_CHANNELDOWN" })
+]
+
+gpio_buttons = [
+    dotdict({ 'gpio': 21, 'code':"RM-ED050-15 KEY_DIRECTORY" }),
+    dotdict({ 'gpio': 22, 'code':"RM-ED050-12 KEY_UP" }),
+    dotdict({ 'gpio': 23, 'code':"RM-ED050-12 KEY_DOWN" })
 ]
 
 def signal_handler(signal, frame):
@@ -100,6 +107,18 @@ class PyGameInterface(object):
             pygame.display.update(self.dirty_rect)
             self.display_dirty = False
             self.dirty_rect.inflate_ip(-self.dirty_rect.w, -self.dirty_rect.h)
+            
+    def gpio_button_callback(self, gpio, value):
+        print gpio, value
+        button = self.gpio_buttons[gpio]
+        inject_event = pygame.event.Event(pygame.USEREVENT, {'code':button.code})
+        pygame.event.post(inject_event)
+        
+    def init_gpio_buttons(self, buttons):
+        self.gpio_buttons = {}
+        for button in buttons:
+            self.gpio_buttons[button.gpio] = button
+            RPIO.add_interrupt_callback(button.gpio, self.gpio_button_callback, edge='falling', pull_up_down=RPIO.PUD_UP, debounce_timeout_ms=150)
         
     def run(self):
         signal.signal(signal.SIGTERM, signal_handler)
@@ -116,6 +135,8 @@ class PyGameInterface(object):
                                     Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255), Style.HIGHLIGHT_COLOUR: (0, 255, 0) }
 
         self.layout_buttons(test_button_layout)
+        self.init_gpio_buttons(gpio_buttons)
+        RPIO.wait_for_interrupts(threaded=True)
         
         self.screen.fill((0, 0, 0))
         for button in self.buttons:
@@ -145,9 +166,17 @@ class PyGameInterface(object):
                                 button.highlight(True)
                                 self.render_current_button()
                                 self.press_time = time.time()
+                                self.current_ir_code = self.current_button.code
                                 waiting_for_input = False
                                 pygame.event.clear()
                                 break
+                            
+                    if event.type == pygame.USEREVENT:
+                        print event.code
+                        self.current_ir_code = event.code
+                        waiting_for_input = False
+                        pygame.event.clear()
+                        break
 
                     if event.type == pygame.MOUSEBUTTONUP and self.current_button:
                         self.release_current_button()
@@ -167,7 +196,7 @@ class PyGameInterface(object):
             if not waiting_for_input:
                 self.update_display()
                 pygame.event.set_blocked([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
-                self.send_ir(self.current_button.code)
+                self.send_ir(self.current_ir_code)
                 time.sleep(0.1)
                 pygame.event.set_allowed([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
         
