@@ -48,6 +48,27 @@ socket in PyMony code.
 Results:
 - This worked, but didn't alleviate the bouncing/repeating issue
 - Not sending IR keeps the UI nice and stable, without bouncing
+- Wrote a test C++ app to try sending IR regularly and use SDL to read touchscreen - same bounce issue
+- Modified the C++ app to directly read touchscreen via tslib and not SDL - same bounce issue
+- Investigated lirc_rpi driver source and touchscreen source (stmpe_ts.c):
+  - http://harctoolbox.org/downloads/lirc_rpi.c
+  - http://lxr.free-electrons.com/source/drivers/input/touchscreen/stmpe-ts.c
+  - lirc_rpi uses bitbanging on gpio port to generate output waveform, and uses a kernel spinlock with
+    interrupts disabled when sending an entire code - this can be at least 75ms for a 12 bit Sony IR
+    code (2 repeats with delay between).
+  - stmpe_ts uses an IRQ to read data from the touchscreen, and also schedules a 'delayed work' timeout
+    callback which sets a 'no touch' after kernel HZ / 50 delay (which will be about 20ms)
+  - hypothesis is that the disable interrupt period can cause the touchscreen to timeout and generate
+    'no touch' events as a result, leading to the bouncing observed.
+- Rewrote Python app main loop to separate input reading and IR sending:
+  - Input event handling loop runs until a button press is detected
+  - Then any further events are flushed, touch screen events are disabled
+  - Then IR codes are sent, and a 100ms delay occurs
+  - Then touch screen events are enabled and loop back to input event handling
+    - current button is still set to avoid repeats
+  - This doesn't bounce...
+    - Seems fairly responsive
+    - Doesn't repeat send; but could be added 
 
 Phase 5 - Devices
 =================

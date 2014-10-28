@@ -33,7 +33,7 @@ BUTTON_Y_OFFSET         = BUTTON_MARGIN
 BUTTON_COLUMN_WIDTH     = (SCREEN_WIDTH / BUTTON_COLUMNS)
 BUTTON_ROW_HEIGHT       = (SCREEN_HEIGHT / BUTTON_ROWS)
 
-BOUNCE_LIMIT    = 3 
+BUTTON_TIMEOUT    = 0.3
 
 test_button_layout = [
     dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"RM-ED050-12 KEY_POWER;Phillips-HTS KEY_POWER" }),
@@ -90,6 +90,17 @@ class PyGameInterface(object):
         self.dirty_rect.union_ip(self.current_button)
         self.current_button.render(self.screen)
         
+    def release_current_button(self):
+        self.current_button.highlight(False)
+        self.render_current_button()
+        self.current_button = None
+        
+    def update_display(self):
+        if self.display_dirty:
+            pygame.display.update(self.dirty_rect)
+            self.display_dirty = False
+            self.dirty_rect.inflate_ip(-self.dirty_rect.w, -self.dirty_rect.h)
+        
     def run(self):
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
@@ -113,49 +124,52 @@ class PyGameInterface(object):
         
         self.display_dirty = False
         self.current_button = None
-        self.loop_count = 0
         self.dirty_rect = pygame.Rect(0, 0, 0, 0)
 
         while running:
-            self.loop_count += 1
-            if self.display_dirty:
-                pygame.display.update(self.dirty_rect)
-                self.display_dirty = False
-                self.dirty_rect.inflate_ip(-self.dirty_rect.w, -self.dirty_rect.h)
-
-            # Can't use pygame.event.wait() as this blocks signals
-            time.sleep(0.008)
-            event = pygame.event.poll()
             
-            while event.type != pygame.NOEVENT:
-                if event.type == pygame.MOUSEBUTTONDOWN and self.current_button == None:
-                    #print self.loop_count,":",event
-                    for button in self.buttons:
-                        if button.hit_test(event.pos):
-                            self.current_button = button
-                            button.highlight(True)
-                            self.render_current_button()
-                            self.send_ir(self.current_button.code)
-                            break
-                        
-                if event.type == pygame.MOUSEMOTION and self.current_button:
-                    if not self.current_button.hit_test(event.pos):
-                        #print self.loop_count,":",event
-                        self.current_button.highlight(False)
-                        self.render_current_button()
-                        self.current_button = None
-                    
-                if event.type == pygame.MOUSEBUTTONUP:
-                    #print self.loop_count,":",event
-                    if self.current_button:
-                        self.current_button.highlight(False)
-                        self.render_current_button()
-                        self.current_button = None
-                
-                if event.type == pygame.QUIT:
-                    running = False
-                
+            waiting_for_input = True
+            
+            while running and waiting_for_input:
+                self.update_display()
+
+                # Can't use pygame.event.wait() as this blocks signals
+                time.sleep(0.008)
                 event = pygame.event.poll()
+                
+                while event.type != pygame.NOEVENT:
+                    if event.type == pygame.MOUSEBUTTONDOWN and self.current_button == None:
+                        for button in self.buttons:
+                            if button.hit_test(event.pos):
+                                self.current_button = button
+                                button.highlight(True)
+                                self.render_current_button()
+                                self.press_time = time.time()
+                                waiting_for_input = False
+                                pygame.event.clear()
+                                break
+
+                    if event.type == pygame.MOUSEBUTTONUP and self.current_button:
+                        self.release_current_button()
+
+                    if event.type == pygame.MOUSEMOTION and self.current_button:
+                        if not self.current_button.hit_test(event.pos):
+                            self.release_current_button()
+                            
+                    if event.type == pygame.QUIT:
+                        running = False
+                    
+                    event = pygame.event.poll()
+                    
+                if self.current_button and time.time() - self.press_time > BUTTON_TIMEOUT:
+                    self.release_current_button()
+                    
+            if not waiting_for_input:
+                self.update_display()
+                pygame.event.set_blocked([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
+                self.send_ir(self.current_button.code)
+                time.sleep(0.1)
+                pygame.event.set_allowed([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
         
         IR.deinit()
 
