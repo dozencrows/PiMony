@@ -45,7 +45,7 @@ test_button_layout = [
 ]
 
 gpio_buttons = [
-    dotdict({ 'gpio': 21, 'code':"RM-ED050-15 KEY_DIRECTORY" }),
+    dotdict({ 'gpio': 13, 'code':"RM-ED050-15 KEY_DIRECTORY" }),
     dotdict({ 'gpio': 22, 'code':"RM-ED050-12 KEY_UP" }),
     dotdict({ 'gpio': 23, 'code':"RM-ED050-12 KEY_DOWN" })
 ]
@@ -62,6 +62,9 @@ class PyGameInterface(object):
         #self.font_large = pygame.font.Font("LiberationSansNarrow-Bold.ttf", 16)
         self.font = pygame.font.Font("Impact.ttf", 16)
         self.font_large = pygame.font.Font("Impact.ttf", 18)
+        RPIO.setmode(RPIO.BOARD)
+        RPIO.setup(8, RPIO.OUT)
+        RPIO.output(8, False)
 
     def use_window(self):
         os.environ['SDL_VIDEODRIVER'] = 'x11'
@@ -117,6 +120,7 @@ class PyGameInterface(object):
     def init_gpio_buttons(self, buttons):
         self.gpio_buttons = {}
         for button in buttons:
+            print "Configuring GPIO button", button.gpio
             self.gpio_buttons[button.gpio] = button
             RPIO.add_interrupt_callback(button.gpio, self.gpio_button_callback, edge='falling', pull_up_down=RPIO.PUD_UP, debounce_timeout_ms=150)
         
