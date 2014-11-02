@@ -45,9 +45,9 @@ test_button_layout = [
 ]
 
 gpio_buttons = [
+    dotdict({ 'gpio': 15, 'code':"RM-ED050-12 KEY_UP" }),
+    dotdict({ 'gpio': 16, 'code':"RM-ED050-12 KEY_DOWN" }),
     dotdict({ 'gpio': 13, 'code':"RM-ED050-15 KEY_DIRECTORY" }),
-    dotdict({ 'gpio': 22, 'code':"RM-ED050-12 KEY_UP" }),
-    dotdict({ 'gpio': 23, 'code':"RM-ED050-12 KEY_DOWN" })
 ]
 
 def signal_handler(signal, frame):
@@ -207,6 +207,8 @@ class PyGameInterface(object):
         IR.deinit()
 
     def send_ir(self, code):
+        RPIO.output(8, True)
         parts = code.split(';')
         for part in parts:
             IR.send_once(part)
+        RPIO.output(8, False)
