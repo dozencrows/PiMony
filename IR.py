@@ -3,10 +3,10 @@ import socket
 LIRCD_ADDRESS = "/var/run/lirc/lircd"
 
 def init():
-    print "IR initialised"
+    pass
     
 def deinit():
-    print "IR deinitialised"
+    pass
 
 def send_ir(message):
     lircd_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

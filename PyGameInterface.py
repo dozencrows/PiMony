@@ -11,6 +11,7 @@ import time
 import imp
 import sys, signal
 import IR
+import I2C
 import RPIO
 
 from TouchScreenButton import TouchScreenButton
@@ -34,7 +35,8 @@ BUTTON_Y_OFFSET         = BUTTON_MARGIN
 BUTTON_COLUMN_WIDTH     = (SCREEN_WIDTH / BUTTON_COLUMNS)
 BUTTON_ROW_HEIGHT       = (SCREEN_HEIGHT / BUTTON_ROWS)
 
-BUTTON_TIMEOUT    = 0.3
+BUTTON_TIMEOUT      = 0.3
+I2C_DEBOUNCE_COUNT  = 3
 
 test_button_layout = [
     dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"RM-ED050-12 KEY_POWER;Phillips-HTS KEY_POWER" }),
@@ -50,8 +52,23 @@ gpio_buttons = [
     dotdict({ 'gpio': 13, 'code':"RM-ED050-15 KEY_DIRECTORY" }),
 ]
 
+i2c_buttons = [
+    dotdict({ 'mask': 0x004, 'code':"RM-ED050-12 KEY_1"}),
+    dotdict({ 'mask': 0x040, 'code':"RM-ED050-12 KEY_2"}),
+    dotdict({ 'mask': 0x400, 'code':"RM-ED050-12 KEY_3"}),
+
+    dotdict({ 'mask': 0x002, 'code':"RM-ED050-12 KEY_4"}),
+    dotdict({ 'mask': 0x020, 'code':"RM-ED050-12 KEY_5"}),
+    dotdict({ 'mask': 0x200, 'code':"RM-ED050-12 KEY_6"}),
+
+    dotdict({ 'mask': 0x001, 'code':"RM-ED050-12 KEY_7"}),
+    dotdict({ 'mask': 0x010, 'code':"RM-ED050-12 KEY_8"}),
+    dotdict({ 'mask': 0x100, 'code':"RM-ED050-12 KEY_9"}),
+
+    dotdict({ 'mask': 0x080, 'code':"RM-ED050-12 KEY_0"}),
+]
+
 def signal_handler(signal, frame):
-    print 'Signal: {}'.format(signal)
     quit_event = pygame.event.Event(pygame.QUIT)
     pygame.event.post(quit_event)
 
@@ -63,6 +80,7 @@ class PyGameInterface(object):
         self.font = pygame.font.Font("Impact.ttf", 16)
         self.font_large = pygame.font.Font("Impact.ttf", 18)
         RPIO.setmode(RPIO.BOARD)
+        RPIO.setwarnings(False)
         RPIO.setup(8, RPIO.OUT)
         RPIO.output(8, False)
 
@@ -112,17 +130,41 @@ class PyGameInterface(object):
             self.dirty_rect.inflate_ip(-self.dirty_rect.w, -self.dirty_rect.h)
             
     def gpio_button_callback(self, gpio, value):
-        print gpio, value
-        button = self.gpio_buttons[gpio]
-        inject_event = pygame.event.Event(pygame.USEREVENT, {'code':button.code})
-        pygame.event.post(inject_event)
+        if value == 0:
+            button = self.gpio_buttons[gpio]
+            inject_event = pygame.event.Event(pygame.USEREVENT, {'code':button.code})
+            pygame.event.post(inject_event)
         
     def init_gpio_buttons(self, buttons):
         self.gpio_buttons = {}
         for button in buttons:
-            print "Configuring GPIO button", button.gpio
             self.gpio_buttons[button.gpio] = button
-            RPIO.add_interrupt_callback(button.gpio, self.gpio_button_callback, edge='falling', pull_up_down=RPIO.PUD_UP, debounce_timeout_ms=150)
+            RPIO.add_interrupt_callback(button.gpio, self.gpio_button_callback, edge='both', pull_up_down=RPIO.PUD_UP, debounce_timeout_ms=150)
+
+    def init_i2c_buttons(self, buttons):
+        self.i2c_raw_data = 0
+        self.i2c_buttons = []
+        for button in buttons:
+            self.i2c_buttons.append(dotdict({'definition':button, 'pending_state':False, 'debounce':0, 'state':False}))
+    
+    def poll_i2c_buttons(self):
+        i2c_raw_data = I2C.poll_keys()
+        if self.i2c_raw_data != i2c_raw_data:
+            self.i2c_raw_data = i2c_raw_data
+            
+            for button in self.i2c_buttons:
+                button_state = (i2c_raw_data & button.definition.mask) != 0
+                if button_state != button.pending_state:
+                    button.debounce = I2C_DEBOUNCE_COUNT
+                    button.pending_state = button_state
+                    
+        for button in self.i2c_buttons:
+            if button.pending_state != button.state:
+                button.debounce -= 1
+                if button.debounce <= 0:
+                    button.state = button.pending_state
+                    if button.state:
+                        self.send_ir(button.definition.code)
         
     def run(self):
         signal.signal(signal.SIGTERM, signal_handler)
@@ -130,6 +172,7 @@ class PyGameInterface(object):
         signal.signal(signal.SIGQUIT, signal_handler)
         
         IR.init()
+        I2C.init()
         
         running = True
         
@@ -140,7 +183,7 @@ class PyGameInterface(object):
 
         self.layout_buttons(test_button_layout)
         self.init_gpio_buttons(gpio_buttons)
-        RPIO.wait_for_interrupts(threaded=True)
+        self.init_i2c_buttons(i2c_buttons)
         
         self.screen.fill((0, 0, 0))
         for button in self.buttons:
@@ -151,6 +194,10 @@ class PyGameInterface(object):
         self.current_button = None
         self.dirty_rect = pygame.Rect(0, 0, 0, 0)
 
+        RPIO.wait_for_interrupts(threaded=True)
+        
+        print "PiMony running..."
+
         while running:
             
             waiting_for_input = True
@@ -160,6 +207,7 @@ class PyGameInterface(object):
 
                 # Can't use pygame.event.wait() as this blocks signals
                 time.sleep(0.008)
+                self.poll_i2c_buttons()
                 event = pygame.event.poll()
                 
                 while event.type != pygame.NOEVENT:
@@ -176,7 +224,6 @@ class PyGameInterface(object):
                                 break
                             
                     if event.type == pygame.USEREVENT:
-                        print event.code
                         self.current_ir_code = event.code
                         waiting_for_input = False
                         pygame.event.clear()
@@ -204,9 +251,11 @@ class PyGameInterface(object):
                 time.sleep(0.1)
                 pygame.event.set_allowed([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
         
+        I2C.deinit()
         IR.deinit()
 
     def send_ir(self, code):
+        print "Sending:", code
         RPIO.output(8, True)
         parts = code.split(';')
         for part in parts:
