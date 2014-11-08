@@ -47,14 +47,14 @@ TIME_STEP		= 0.008
 test_button_layout = [
 #    dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"Phillips-HTS KEY_POWER KEY_POWER KEY_POWER;RM-ED050-12 KEY_POWER" }),
     dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"Phillips-HTS KEY_POWER;RM-ED050-12 KEY_POWER;Phillips-HTS KEY_POWER" }),
-    dotdict({ 'x':0, 'y':1, 'width':1, 'height':1, 'text':"Vol +", 'code':"Phillips-HTS KEY_VOLUMEUP" }),
-    dotdict({ 'x':0, 'y':2, 'width':1, 'height':1, 'text':"Vol -", 'code':"Phillips-HTS KEY_VOLUMEDOWN" }),
-    dotdict({ 'x':1, 'y':1, 'width':1, 'height':1, 'text':"Chan +", 'code':"RM-ED050-12 KEY_CHANNELUP" }),
-    dotdict({ 'x':1, 'y':2, 'width':1, 'height':1, 'text':"Chan -", 'code':"RM-ED050-12 KEY_CHANNELDOWN" }),
-    dotdict({ 'x':0, 'y':3, 'width':1, 'height':1, 'text':"Surrnd", 'code':"Phillips-HTS KEY_CHANNELUP" }),
-    dotdict({ 'x':1, 'y':3, 'width':1, 'height':1, 'text':"Enter", 'code':"RM-ED050-12 KEY_SELECT" }),
-    dotdict({ 'x':0, 'y':4, 'width':1, 'height':1, 'text':"Info", 'code':"RM-ED050-12 KEY_INFO" }),
-    dotdict({ 'x':1, 'y':4, 'width':1, 'height':1, 'text':"Back", 'code':"RM-ED050-15 KEY_BACK" }),
+    dotdict({ 'x':0, 'y':1, 'width':0.5, 'height':1, 'text':"Vol +", 'code':"Phillips-HTS KEY_VOLUMEUP" }),
+    dotdict({ 'x':0, 'y':2, 'width':0.5, 'height':1, 'text':"Vol -", 'code':"Phillips-HTS KEY_VOLUMEDOWN" }),
+    dotdict({ 'x':0.5, 'y':1, 'width':0.5, 'height':1, 'text':"Chan +", 'code':"RM-ED050-12 KEY_CHANNELUP" }),
+    dotdict({ 'x':0.5, 'y':2, 'width':0.5, 'height':1, 'text':"Chan -", 'code':"RM-ED050-12 KEY_CHANNELDOWN" }),
+    dotdict({ 'x':1, 'y':1, 'width':1, 'height':1, 'text':"Surrnd", 'code':"Phillips-HTS KEY_CHANNELUP" }),
+    dotdict({ 'x':1, 'y':2, 'width':1, 'height':1, 'text':"Info", 'code':"RM-ED050-12 KEY_INFO" }),
+    dotdict({ 'x':0, 'y':3, 'width':1, 'height':1, 'text':"Enter", 'code':"RM-ED050-12 KEY_SELECT" }),
+    dotdict({ 'x':1, 'y':3, 'width':1, 'height':1, 'text':"Back", 'code':"RM-ED050-15 KEY_BACK" }),
     dotdict({ 'x':0, 'y':5, 'width':2, 'height':1, 'text':"Mute", 'code':"Phillips-HTS KEY_MUTE" }),
 ]
 
@@ -209,10 +209,10 @@ class PyGameInterface(object):
         
         running = True
         
-        self.button_style = { Style.FONT: self.font, Style.BACKGROUND_COLOUR: (255,128,0), Style.BORDER_COLOUR: (255, 255, 255), 
-                              Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255),   Style.HIGHLIGHT_COLOUR: (0, 255, 0) }
-        self.button_style_large = { Style.FONT: self.font_large, Style.BACKGROUND_COLOUR: (255,128,0), Style.BORDER_COLOUR: (255, 255, 255), 
-                                    Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255), Style.HIGHLIGHT_COLOUR: (0, 255, 0) }
+        self.button_style = Style.Style(None, { Style.FONT: self.font, Style.BACKGROUND_COLOUR: (255,128,0), Style.BORDER_COLOUR: (255, 255, 255), 
+                              Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255),   Style.HIGHLIGHT_COLOUR: (0, 255, 0) })
+        self.button_style_large = Style.Style(None, { Style.FONT: self.font_large, Style.BACKGROUND_COLOUR: (255,128,0), Style.BORDER_COLOUR: (255, 255, 255), 
+                                    Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255), Style.HIGHLIGHT_COLOUR: (0, 255, 0) })
 
         self.layout_buttons(test_button_layout)
 #        self.init_gpio_interrupt_buttons(gpio_buttons)
