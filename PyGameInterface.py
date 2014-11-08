@@ -55,6 +55,12 @@ test_button_layout = [
     dotdict({ 'x':1, 'y':2, 'width':1, 'height':1, 'text':"Info", 'code':"RM-ED050-12 KEY_INFO" }),
     dotdict({ 'x':0, 'y':3, 'width':1, 'height':1, 'text':"Enter", 'code':"RM-ED050-12 KEY_SELECT" }),
     dotdict({ 'x':1, 'y':3, 'width':1, 'height':1, 'text':"Back", 'code':"RM-ED050-15 KEY_BACK" }),
+
+    dotdict({ 'x':0,   'y':4, 'width':0.5, 'height':0.5, 'text':"", 'code':"RM-ED050-15 KEY_RED", 'style': { Style.BACKGROUND_COLOUR:(192, 0, 0), Style.HIGHLIGHT_COLOUR:(255, 255, 255)} }),
+    dotdict({ 'x':0.5, 'y':4, 'width':0.5, 'height':0.5, 'text':"", 'code':"RM-ED050-15 KEY_GREEN", 'style': { Style.BACKGROUND_COLOUR:(0, 192, 0), Style.HIGHLIGHT_COLOUR:(255,255,255)} }),
+    dotdict({ 'x':1,   'y':4, 'width':0.5, 'height':0.5, 'text':"", 'code':"RM-ED050-15 KEY_YELLOW", 'style': { Style.BACKGROUND_COLOUR:(192, 192, 0), Style.HIGHLIGHT_COLOUR:(255,255,255)} }),
+    dotdict({ 'x':1.5, 'y':4, 'width':0.5, 'height':0.5, 'text':"", 'code':"RM-ED050-15 KEY_BLUE", 'style': { Style.BACKGROUND_COLOUR:(0, 0, 192), Style.HIGHLIGHT_COLOUR:(255,255,255)} }),
+
     dotdict({ 'x':0, 'y':5, 'width':2, 'height':1, 'text':"Mute", 'code':"Phillips-HTS KEY_MUTE" }),
 ]
 
@@ -123,6 +129,9 @@ class PyGameInterface(object):
                 style = self.button_style_large
             else:
                 style = self.button_style
+
+            if button_def.has_key('style'):
+                style = Style.Style(style, button_def.style)
                 
             self.buttons.append(TouchScreenButton(x, y, w, h, button_def.text, button_def.code, style))
     
@@ -297,6 +306,7 @@ class PyGameInterface(object):
                 time.sleep(0.1)
                 pygame.event.set_allowed([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
         
+        self.backlight.set(False)
         I2C.deinit()
         IR.deinit()
 
@@ -307,7 +317,7 @@ class PyGameInterface(object):
         for part in parts:
             IR.send_once(part)
         RPIO.output(8, False)
-	self.disable_screen_saver()
+        self.disable_screen_saver()
 
     def enable_screen_saver(self):
         self.screen_saver = True
