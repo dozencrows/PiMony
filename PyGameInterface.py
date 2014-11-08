@@ -15,6 +15,8 @@ import I2C
 import RPIO
 
 from TouchScreenButton import TouchScreenButton
+from Backlight import Backlight
+
 import Style
 
 class dotdict(dict):
@@ -37,6 +39,9 @@ BUTTON_ROW_HEIGHT       = (SCREEN_HEIGHT / BUTTON_ROWS)
 
 BUTTON_TIMEOUT      = 0.3
 I2C_DEBOUNCE_COUNT  = 3
+
+SCREEN_SAVER_TIMEOUT	= 30.0
+TIME_STEP		= 0.008
 
 test_button_layout = [
 #    dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"Phillips-HTS KEY_POWER KEY_POWER KEY_POWER;RM-ED050-12 KEY_POWER" }),
@@ -89,6 +94,7 @@ class PyGameInterface(object):
         RPIO.setwarnings(False)
         RPIO.setup(8, RPIO.OUT)
         RPIO.output(8, False)
+	self.backlight = Backlight()
 
     def use_window(self):
         os.environ['SDL_VIDEODRIVER'] = 'x11'
@@ -195,10 +201,13 @@ class PyGameInterface(object):
         for button in self.buttons:
             button.render(self.screen)
         pygame.display.flip()
+	self.backlight.set(True)
         
         self.display_dirty = False
         self.current_button = None
         self.dirty_rect = pygame.Rect(0, 0, 0, 0)
+	self.screen_saver = False
+	self.screen_saver_count = SCREEN_SAVER_TIMEOUT
 
         RPIO.wait_for_interrupts(threaded=True)
         
@@ -212,22 +221,25 @@ class PyGameInterface(object):
                 self.update_display()
 
                 # Can't use pygame.event.wait() as this blocks signals
-                time.sleep(0.008)
+                time.sleep(TIME_STEP)
                 self.poll_i2c_buttons()
                 event = pygame.event.poll()
                 
                 while event.type != pygame.NOEVENT:
                     if event.type == pygame.MOUSEBUTTONDOWN and self.current_button == None:
-                        for button in self.buttons:
-                            if button.hit_test(event.pos):
-                                self.current_button = button
-                                button.highlight(True)
-                                self.render_current_button()
-                                self.press_time = time.time()
-                                self.current_ir_code = self.current_button.code
-                                waiting_for_input = False
-                                pygame.event.clear()
-                                break
+                        if self.screen_saver:
+                            self.disable_screen_saver()
+                        else:
+                            for button in self.buttons:
+                                if button.hit_test(event.pos):
+                                    self.current_button = button
+                                    button.highlight(True)
+                                    self.render_current_button()
+                                    self.press_time = time.time()
+                                    self.current_ir_code = self.current_button.code
+                                    waiting_for_input = False
+                                    pygame.event.clear()
+                                    break
                             
                     if event.type == pygame.USEREVENT:
                         self.current_ir_code = event.code
@@ -249,6 +261,11 @@ class PyGameInterface(object):
                     
                 if self.current_button and time.time() - self.press_time > BUTTON_TIMEOUT:
                     self.release_current_button()
+
+                self.screen_saver_count -= TIME_STEP
+
+                if self.screen_saver_count <= 0 and not self.screen_saver:
+                    self.enable_screen_saver()
                     
             if not waiting_for_input:
                 self.update_display()
@@ -267,3 +284,14 @@ class PyGameInterface(object):
         for part in parts:
             IR.send_once(part)
         RPIO.output(8, False)
+	self.disable_screen_saver()
+
+    def enable_screen_saver(self):
+        self.screen_saver = True
+        self.backlight.set(False)
+
+    def disable_screen_saver(self):
+        self.screen_saver_count = SCREEN_SAVER_TIMEOUT
+        if self.screen_saver:
+            self.screen_saver = False
+            self.backlight.set(True)
