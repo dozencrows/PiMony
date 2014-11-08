@@ -37,8 +37,9 @@ BUTTON_Y_OFFSET         = BUTTON_MARGIN
 BUTTON_COLUMN_WIDTH     = (SCREEN_WIDTH / BUTTON_COLUMNS)
 BUTTON_ROW_HEIGHT       = (SCREEN_HEIGHT / BUTTON_ROWS)
 
-BUTTON_TIMEOUT      = 0.3
-I2C_DEBOUNCE_COUNT  = 3
+BUTTON_TIMEOUT          = 0.3
+I2C_DEBOUNCE_COUNT      = 3
+GPIO_DEBOUNCE_COUNT     = 3
 
 SCREEN_SAVER_TIMEOUT	= 30.0
 TIME_STEP		= 0.008
@@ -143,15 +144,35 @@ class PyGameInterface(object):
             
     def gpio_button_callback(self, gpio, value):
         if value == 0:
-            button = self.gpio_buttons[gpio]
+            button = self.gpio_interrupt_buttons[gpio]
             inject_event = pygame.event.Event(pygame.USEREVENT, {'code':button.code})
             pygame.event.post(inject_event)
         
-    def init_gpio_buttons(self, buttons):
-        self.gpio_buttons = {}
+    def init_gpio_interrupt_buttons(self, buttons):
+        self.gpio_interrupt_buttons = {}
         for button in buttons:
-            self.gpio_buttons[button.gpio] = button
+            self.gpio_interrupt_buttons[button.gpio] = button
             RPIO.add_interrupt_callback(button.gpio, self.gpio_button_callback, edge='both', pull_up_down=RPIO.PUD_UP, debounce_timeout_ms=150)
+
+    def init_gpio_buttons(self, buttons):
+        self.gpio_buttons = []
+        for button in buttons:
+            self.gpio_buttons.append(dotdict({'definition':button, 'pending_state':False, 'debounce':0, 'state':False}))
+            RPIO.setup(button.gpio, RPIO.IN, pull_up_down=RPIO.PUD_UP)
+            
+    def poll_gpio_buttons(self):
+        for button in self.gpio_buttons:
+            gpio_state = not RPIO.input(button.definition.gpio)
+            if gpio_state != button.pending_state:
+                button.debounce = GPIO_DEBOUNCE_COUNT
+                button.pending_state = gpio_state
+
+            if button.pending_state != button.state:
+                button.debounce -= 1
+                if button.debounce <= 0:
+                    button.state = button.pending_state        
+                    if button.state:
+                        self.send_ir(button.definition.code)
 
     def init_i2c_buttons(self, buttons):
         self.i2c_raw_data = 0
@@ -194,6 +215,7 @@ class PyGameInterface(object):
                                     Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255), Style.HIGHLIGHT_COLOUR: (0, 255, 0) }
 
         self.layout_buttons(test_button_layout)
+#        self.init_gpio_interrupt_buttons(gpio_buttons)
         self.init_gpio_buttons(gpio_buttons)
         self.init_i2c_buttons(i2c_buttons)
         
@@ -201,13 +223,13 @@ class PyGameInterface(object):
         for button in self.buttons:
             button.render(self.screen)
         pygame.display.flip()
-	self.backlight.set(True)
+        self.backlight.set(True)
         
         self.display_dirty = False
         self.current_button = None
         self.dirty_rect = pygame.Rect(0, 0, 0, 0)
-	self.screen_saver = False
-	self.screen_saver_count = SCREEN_SAVER_TIMEOUT
+        self.screen_saver = False
+        self.screen_saver_count = SCREEN_SAVER_TIMEOUT
 
         RPIO.wait_for_interrupts(threaded=True)
         
@@ -223,6 +245,7 @@ class PyGameInterface(object):
                 # Can't use pygame.event.wait() as this blocks signals
                 time.sleep(TIME_STEP)
                 self.poll_i2c_buttons()
+                self.poll_gpio_buttons()
                 event = pygame.event.poll()
                 
                 while event.type != pygame.NOEVENT:
