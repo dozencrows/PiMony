@@ -1,3 +1,51 @@
+HARDWARE
+========
+1. Constructed basic board with IR send and receive capability.
+2. Built separate IR send only board
+3. Constructed I2C switch matrix for keypad prototype
+4. Constructed adapter board to break out I2C GPIOs, power & ground to
+   allow 2 & 3 to be used together
+5. Constructed load switching circuit to allow charging & operation simultaneously: breadboard, then soldered circuit
+6. Constructed 555 timer based IR LED driver on breadboard: manually tested to tune frequency, tested with Pi GPIO and LIRCD to check real functionality.
+
+Load switch testing
+-------------------
+1. Charge from arbitrary level to full.
+    - start time:           11:06
+    - observed full time:
+    - PSU:                  5.2V, 1.5A
+    - observations:
+        - at 11:59, power supply went pop, made a burning smell and failed.
+        - switched to 5.25V, 2A PSU - charging continued from 12:00
+        - still not switched on 'charged' LED at 14:19
+        - stopped and shut down at this point
+        - battery checked via independent charging setup using PowerBoost (5V 1A supply)
+            - started                       14:27
+            - charging LED observed off     14:50
+        - battery checked via independent charging setup using MicroLipo charger (5V 1A supply)
+            - started                       15:41
+            - ...
+        - found black terminal wire disconnected, so tried again:
+            - started                      ~18:55
+            - observed charged              19:40
+    
+2. Charge from low to full.
+    - started PiMony running on full charge at  19:55
+    - still working fine at                     23:49   (+4 hours)
+    - restarted next day at                     09:55
+    - observed flat & off at                    12:43
+
+    - started charge & power on                 12:45
+        - would not boot Pi - turned out to be incorrect wiring of load sharing breadboard.
+        - corrected and powered up Pi, 
+          switched load sharing back on         12:58
+          (Pi remained powered up, charge LED
+           lit)
+    - observed charged                          22:08
+
+SOFTWARE
+========
+
 Phase 1 - first working buttons
 ===============================
 - Create demo set of touch buttons to control TV:
@@ -14,33 +62,8 @@ Results
 - Done, but irsend spawn is too slow:
 	- multiple commands need separate spawns, which causes errors
 	- Touchscreen flickers and touches bounce, causing lots of repeats
-	- Jumped ahead to Phase 4 to try and resolve this...
-	
-Phase 2 - GPIO buttons
-======================
-Ideas:
-* Use RPIO in Python to set up interrupts/polling on buttons
-	- modify startup to ensure Python RPIO module can be used without sudo
-	- create GPIO button class to associate GPIO pin and LIRC string
-	- on press 'edge' spawn irsend as above
-* Use PikeyD
-	- Set up PikeyD to generate key presses from GPIO pin buttons
-	- Add Keyboard button class to associate keypress and LIRC string
-	- on keypress, spawn irsend as above
-	
-Phase 3 - Switch matrix
-=======================
-Ideas:
-* Use SMBus in Python to poll I2C
-	- modify startup to ensure Python SMBus module can be used without sudo
-	- create SwitchMatrix button class to associate matrix code and LIRC string
-	- poll I2C to read matrix; on press 'edge' decode to LIRC string and spawn irsend as above
-* Use PikeyD
-	- Modify PikeyD to poll, read and decode matrix via I2C, and generate keypress
-	- Add Keyboard button class to associate keypress and LIRC string
-	- on keypress, spawn irsend as above
 
-Phase 4 - Direct LIRC connection
+Phase 2 - Direct LIRC connection
 ================================
 Replace spawn of irsend with direct LIRC communication via directly opening & using
 socket in PyMony code.
@@ -69,6 +92,29 @@ Results:
   - This doesn't bounce...
     - Seems fairly responsive
     - Doesn't repeat send; but could be added 
+	
+Phase 3 - GPIO buttons
+======================
+Ideas:
+* Use RPIO in Python to set up interrupts/polling on buttons
+	- modify startup to ensure Python RPIO module can be used without sudo
+	- create GPIO button class to associate GPIO pin and LIRC string
+	- on press 'edge' generate IR output
+	
+Results
+- Added GPIO handling code to read buttons on TFT screen to trigger code sending - worked well.
+- Still requires sudo to run.
+	
+Phase 4 - Switch matrix
+=======================
+Ideas:
+* Use SMBus in Python to poll I2C
+	- modify startup to ensure Python SMBus module can be used without sudo
+	- create SwitchMatrix button class to associate matrix code and LIRC string
+	- poll I2C to read matrix; on press 'edge' decode to LIRC string and send IR code
+
+Results
+- Extended Python app to poll key matrix - worked well 
 
 Phase 5 - Devices
 =================
@@ -109,3 +155,5 @@ Phase 8 - C/C++ Implementation
 
 Phase 9 - Microcontroller Implementation
 ========================================
+
+
