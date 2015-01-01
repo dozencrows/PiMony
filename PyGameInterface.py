@@ -93,10 +93,8 @@ def signal_handler(signal, frame):
 class PyGameInterface(object):
     def __init__(self):
         pygame.font.init()
-        #self.font = pygame.font.Font("LiberationSansNarrow-Bold.ttf", 14)
-        #self.font_large = pygame.font.Font("LiberationSansNarrow-Bold.ttf", 16)
-        self.font = pygame.font.Font("Impact.ttf", 16)
-        self.font_large = pygame.font.Font("Impact.ttf", 18)
+        self.font = pygame.font.Font("Cousine-Bold.ttf", 14)
+        self.font_large = pygame.font.Font("Cousine-Bold.ttf", 16)
         RPIO.setmode(RPIO.BOARD)
         RPIO.setwarnings(False)
         RPIO.setup(8, RPIO.OUT)
