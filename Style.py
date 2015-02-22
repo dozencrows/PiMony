@@ -1,3 +1,10 @@
+#=======================================================================
+# Copyright Nicholas Tuckett 2015.
+# Distributed under the MIT License.
+# (See accompanying file license.txt or copy at
+#  http://opensource.org/licenses/MIT)
+#=======================================================================
+
 BACKGROUND_COLOUR   = "background-colour"
 BORDER_COLOUR       = "border-colour"
 BORDER_WIDTH        = "border-width"
