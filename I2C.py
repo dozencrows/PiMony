@@ -28,20 +28,26 @@ bus = None
 def init():
     global bus;
     bus = smbus.SMBus(I2C_BUS)
-    
-    bus.write_byte_data(I2C_ADDR, MCP23017_IODIRA, GPIOA_SETUP_MASK)
-    bus.write_byte_data(I2C_ADDR, MCP23017_GPPUA, GPIOA_SETUP_MASK)
-    bus.write_byte_data(I2C_ADDR, MCP23017_IPOLA, GPIOA_SETUP_MASK)
+
+    try:    
+        bus.write_byte_data(I2C_ADDR, MCP23017_IODIRA, GPIOA_SETUP_MASK)
+        bus.write_byte_data(I2C_ADDR, MCP23017_GPPUA, GPIOA_SETUP_MASK)
+        bus.write_byte_data(I2C_ADDR, MCP23017_IPOLA, GPIOA_SETUP_MASK)
+    except IOError:
+        pass
 
 def poll_keys():
-    bus.write_byte_data(I2C_ADDR, MCP23017_GPIOA, GPIOA_POLL_COL1)
-    column_data = bus.read_byte_data(I2C_ADDR, MCP23017_GPIOA) & 0x0f
+    try:    
+        bus.write_byte_data(I2C_ADDR, MCP23017_GPIOA, GPIOA_POLL_COL1)
+        column_data = bus.read_byte_data(I2C_ADDR, MCP23017_GPIOA) & 0x0f
 
-    bus.write_byte_data(I2C_ADDR, MCP23017_GPIOA, GPIOA_POLL_COL2)
-    column_data = column_data | (bus.read_byte_data(I2C_ADDR, MCP23017_GPIOA) & 0x0f) << 4
+        bus.write_byte_data(I2C_ADDR, MCP23017_GPIOA, GPIOA_POLL_COL2)
+        column_data = column_data | (bus.read_byte_data(I2C_ADDR, MCP23017_GPIOA) & 0x0f) << 4
 
-    bus.write_byte_data(I2C_ADDR, MCP23017_GPIOA, GPIOA_POLL_COL3)
-    column_data = column_data | (bus.read_byte_data(I2C_ADDR, MCP23017_GPIOA) & 0x0f) << 8
+        bus.write_byte_data(I2C_ADDR, MCP23017_GPIOA, GPIOA_POLL_COL3)
+        column_data = column_data | (bus.read_byte_data(I2C_ADDR, MCP23017_GPIOA) & 0x0f) << 8
+    except IOError:
+        column_data = 0
     
     return column_data
 
