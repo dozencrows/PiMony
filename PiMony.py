@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #=======================================================================
 # Copyright Nicholas Tuckett 2015.
 # Distributed under the MIT License.
@@ -5,7 +6,6 @@
 #  http://opensource.org/licenses/MIT)
 #=======================================================================
 
-#!/usr/bin/python
 '''
 PiMony -- Smart remote control prototype
 
