@@ -52,7 +52,6 @@ SCREEN_SAVER_TIMEOUT	= 30.0
 TIME_STEP		= 0.008
 
 test_button_layout = [
-#    dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"Phillips-HTS KEY_POWER KEY_POWER KEY_POWER;RM-ED050-12 KEY_POWER" }),
     dotdict({ 'x':0, 'y':0, 'width':2, 'height':1, 'text':"Power", 'code':"Phillips-HTS KEY_POWER;RM-ED050-12 KEY_POWER;Phillips-HTS KEY_POWER" }),
     dotdict({ 'x':0, 'y':1, 'width':0.5, 'height':1, 'text':"Vol +", 'code':"Phillips-HTS KEY_VOLUMEUP" }),
     dotdict({ 'x':0, 'y':2, 'width':0.5, 'height':1, 'text':"Vol -", 'code':"Phillips-HTS KEY_VOLUMEDOWN" }),
@@ -229,7 +228,6 @@ class PyGameInterface(object):
                                     Style.BORDER_WIDTH: 1, Style.TEXT_COLOUR: (255, 255, 255), Style.HIGHLIGHT_COLOUR: (0, 255, 0) })
 
         self.layout_buttons(test_button_layout)
-#        self.init_gpio_interrupt_buttons(gpio_buttons)
         self.init_gpio_buttons(gpio_buttons)
         self.init_i2c_buttons(i2c_buttons)
         
@@ -296,9 +294,6 @@ class PyGameInterface(object):
                     
                     event = pygame.event.poll()
                     
-                if self.current_button and time.time() - self.press_time > BUTTON_TIMEOUT:
-                    self.release_current_button()
-
                 self.screen_saver_count -= TIME_STEP
 
                 if self.screen_saver_count <= 0 and not self.screen_saver:
@@ -306,10 +301,7 @@ class PyGameInterface(object):
                     
             if not waiting_for_input:
                 self.update_display()
-                pygame.event.set_blocked([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
                 self.send_ir(self.current_ir_code)
-                time.sleep(0.1)
-                pygame.event.set_allowed([pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
         
         self.backlight.set(False)
         I2C.deinit()
